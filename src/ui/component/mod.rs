@@ -1,10 +1,6 @@
-use bevy::{
-    ecs::{prelude::*, query::QueryIter, system::SystemState},
-    math::prelude::*,
-    window::prelude::*,
-};
+use bevy::{ecs::{prelude::*, query::QueryIter, system::{SystemParam, SystemParamFetch, SystemState}}, math::prelude::*, window::prelude::*};
 
-use super::{UiComponent, UiNode, UiNodeEnv};
+use super::{BoxedRunableUiComponent, UiComponent, UiNode, UiNodeEnv};
 
 pub struct Button {
     mouse_position: Option<Vec2>,
@@ -14,18 +10,26 @@ pub struct Button {
 pub struct Test {}
 
 impl UiComponent for Button {
-    type Query = ();
-    type FitlerQuery = ();
+    type Param = (Res<'static, Windows>,);
 
     fn init(&mut self, commands: Commands) {}
     fn update(
         &mut self,
-        query: QueryIter<Self::Query, Self::FitlerQuery>,
+        param: <<Self::Param as SystemParam>::Fetch as SystemParamFetch>::Item,
         env: &mut UiNodeEnv,
     ) -> bool {
+        let test = param;
         false
     }
     fn render(&self) -> Option<UiNode> {
         None
     }
+}
+
+fn _test() {
+    let button = Button {
+        mouse_position: None,
+    };
+    
+    let _boxed: BoxedRunableUiComponent = button.into();
 }
