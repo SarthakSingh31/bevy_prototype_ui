@@ -12,7 +12,7 @@ use bevy::{
     PipelinedDefaultPlugins,
 };
 
-use bevy_prototype_ui::{PrototypeUiPlugin, UiBundle, UiNode};
+use bevy_prototype_ui::{PrototypeUiPlugin, UiBundle, UiNode, ui::camera::UiCameraBundle};
 
 fn main() {
     App::new()
@@ -60,4 +60,6 @@ fn setup(
         transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..Default::default()
     });
+    // ui camera
+    commands.spawn_bundle(UiCameraBundle::default());
 }

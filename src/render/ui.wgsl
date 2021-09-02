@@ -12,7 +12,8 @@ struct UiVertexInput {
     [[location(2)]] transform_2: vec4<f32>;
     [[location(3)]] transform_3: vec4<f32>;
     [[location(4)]] size: vec2<f32>;
-    [[location(5)]] _padding: vec2<f32>;
+    [[location(5)]] margin: vec2<f32>;
+    [[location(6)]] background_color: vec4<f32>;
 };
 
 struct VertexOutput {
@@ -32,22 +33,27 @@ fn vertex(
         instance.transform_2,
         instance.transform_3,
     );
-    // No need to use an index buffer only to save on two f32, the first vertex is repeated
-    // (we use PrimitiveTopology::TriangleStrip)
-    var unit_quad: array<vec2<f32>, 5> = array<vec2<f32>, 5>(
-        vec2<f32>(-0.5, -0.5), // SW
-        vec2<f32>(-0.5,  0.5), // NW
-        vec2<f32>( 0.5,  0.5), // NE
-        vec2<f32>( 0.5, -0.5), // SE
-        vec2<f32>(-0.5, -0.5), // SW
+    // Unit quad (using PrimitiveTopology::TriangleStrip)
+    var unit_quad_pos: array<vec2<f32>, 4> = array<vec2<f32>, 4>(
+        vec2<f32>( 0.5, -0.5), // bottom right
+        vec2<f32>(-0.5, -0.5), // bottom left
+        vec2<f32>( 0.5,  0.5), // top right
+        vec2<f32>(-0.5,  0.5), // top left
     );
+    // var unit_quad_uv: array<vec2<f32>, 4> = array<vec2<f32>, 4>(
+    //     vec2<f32>(1.0, 1.0), // bottom right
+    //     vec2<f32>(0.0, 1.0), // bottom left
+    //     vec2<f32>(1.0, 0.0), // top right
+    //     vec2<f32>(0.0, 0.0), // top left
+    // );
     // Scale the vertices of the unit square
-    let scaled_position = unit_quad[vertex_index] * instance.size;
+    let scaled_position = unit_quad_pos[vertex_index] * instance.size;
     // Apply the object and view transformations
     let clip_position = view.view_proj * object * vec4<f32>(scaled_position, 0.0, 1.0);
     var out: VertexOutput;
     out.clip_position = clip_position;
     out.color = vec4<f32>(0.);
+    // out.uv = unit_quad_uv[vertex_index];
     return out;
 }
 

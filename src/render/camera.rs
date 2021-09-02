@@ -13,16 +13,14 @@ use bevy::{
     },
 };
 
-use super::node::TransparentUiPhase;
-
-pub const CAMERA_UI: &str = "camera_ui";
+use super::{CAMERA_UI, node::UiPassPhase};
 
 pub fn extract_ui_camera(mut commands: Commands, active_cameras: Res<ActiveCameras>) {
     if let Some(camera_ui) = active_cameras.get(CAMERA_UI) {
         if let Some(entity) = camera_ui.entity {
             commands
                 .get_or_spawn(entity)
-                .insert(RenderPhase::<TransparentUiPhase>::default());
+                .insert(RenderPhase::<UiPassPhase>::default());
         }
     }
 }
@@ -31,7 +29,7 @@ pub fn prepare_ui_views(
     mut commands: Commands,
     mut texture_cache: ResMut<TextureCache>,
     render_device: Res<RenderDevice>,
-    views: Query<(Entity, &ExtractedView), With<RenderPhase<TransparentUiPhase>>>,
+    views: Query<(Entity, &ExtractedView), With<RenderPhase<UiPassPhase>>>,
 ) {
     for (entity, view) in views.iter() {
         let cached_texture = texture_cache.get(

@@ -7,7 +7,7 @@ use bevy::{
 };
 use std::mem;
 
-use crate::render::UiVertex;
+use crate::render::ExtractedContainers;
 
 pub struct UiShaders {
     pub pipeline: RenderPipeline,
@@ -31,7 +31,7 @@ impl FromWorld for UiShaders {
                 },
                 count: None,
             }],
-            label: Some("ui_view"),
+            label: Some("ui_view_layout"),
         });
 
         let pipeline_layout = render_device.create_pipeline_layout(&PipelineLayoutDescriptor {
@@ -60,47 +60,9 @@ impl FromWorld for UiShaders {
             }),
             vertex: VertexState {
                 buffers: &[VertexBufferLayout {
-                    array_stride: mem::size_of::<UiVertex>() as BufferAddress,
+                    array_stride: mem::size_of::<ExtractedContainers>() as BufferAddress,
                     step_mode: InputStepMode::Instance,
-                    attributes: &[
-                        // transform col 1
-                        VertexAttribute {
-                            format: VertexFormat::Float32x4,
-                            offset: 0,
-                            shader_location: 0,
-                        },
-                        // transform col 2
-                        VertexAttribute {
-                            format: VertexFormat::Float32x4,
-                            offset: mem::size_of::<[f32; 4]>() as BufferAddress,
-                            shader_location: 1,
-                        },
-                        // transform col 3
-                        VertexAttribute {
-                            format: VertexFormat::Float32x4,
-                            offset: (mem::size_of::<[f32; 4]>() * 2) as BufferAddress,
-                            shader_location: 2,
-                        },
-                        // transform col 4
-                        VertexAttribute {
-                            format: VertexFormat::Float32x4,
-                            offset: (mem::size_of::<[f32; 4]>() * 3) as BufferAddress,
-                            shader_location: 3,
-                        },
-                        // size
-                        VertexAttribute {
-                            format: VertexFormat::Float32x2,
-                            offset: (mem::size_of::<[f32; 4]>() * 5) as BufferAddress,
-                            shader_location: 4,
-                        },
-                        // padding
-                        VertexAttribute {
-                            format: VertexFormat::Float32x2,
-                            offset: (mem::size_of::<[f32; 4]>() * 5 + mem::size_of::<[f32; 2]>())
-                                as BufferAddress,
-                            shader_location: 5,
-                        },
-                    ],
+                    attributes: ExtractedContainers::attributes(),
                 }],
                 module: &shader_module,
                 entry_point: "vertex",

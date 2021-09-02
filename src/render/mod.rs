@@ -1,22 +1,17 @@
-use bevy::{
-    app::prelude::*,
-    core_pipeline,
-    ecs::prelude::*,
-    math::prelude::*,
-    render2::{
-        camera::ActiveCameras,
-        render_graph::{RenderGraph, SlotInfo, SlotType},
-        render_phase::DrawFunctions,
-        render_resource::{BufferUsage, BufferVec},
-        renderer::RenderDevice,
-        RenderStage, RenderSubApp,
-    },
-};
+use std::{collections::VecDeque, mem};
+
+use bevy::{app::prelude::*, core_pipeline, ecs::prelude::*, math::prelude::*, render2::{RenderApp, RenderStage, camera::ActiveCameras, color, render_graph::{RenderGraph, SlotInfo, SlotType}, render_phase::{DrawFunctions, Drawable, RenderPhase, sort_phase_system}, render_resource::{BindGroup, BindGroupDescriptor, BindGroupEntry, BufferAddress, BufferUsage, BufferVec, VertexAttribute, VertexFormat}, renderer::RenderDevice, view::ViewMeta}, transform::prelude::*};
+
+use crate::UI_Z_STEP;
+
+use super::dom;
 
 pub mod camera;
 pub mod draw;
 pub mod node;
 pub mod shader;
+
+pub const CAMERA_UI: &str = "camera_ui";
 
 mod draw_ui_graph {
     pub const NAME: &str = "draw_ui_graph";
@@ -29,21 +24,85 @@ mod draw_ui_graph {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
-struct UiVertex {
-    transform: Mat4,
+#[derive(Debug, Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
+struct ExtractedStyles {
     size: Vec2,
-    _padding: Vec2,
+    margin: Vec2,
+    background_color: Vec4,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
+struct ExtractedContainers {
+    transform: Mat4,
+    styles: ExtractedStyles,
+}
+
+impl ExtractedContainers {
+    pub fn attributes() -> &'static [VertexAttribute] {
+        &[ // TODO: update this
+            // transform col 1
+            VertexAttribute {
+                format: VertexFormat::Float32x4,
+                offset: 0,
+                shader_location: 0,
+            },
+            // transform col 2
+            VertexAttribute {
+                format: VertexFormat::Float32x4,
+                offset: mem::size_of::<[f32; 4]>() as BufferAddress,
+                shader_location: 1,
+            },
+            // transform col 3
+            VertexAttribute {
+                format: VertexFormat::Float32x4,
+                offset: (mem::size_of::<[f32; 4]>() * 2) as BufferAddress,
+                shader_location: 2,
+            },
+            // transform col 4
+            VertexAttribute {
+                format: VertexFormat::Float32x4,
+                offset: (mem::size_of::<[f32; 4]>() * 3) as BufferAddress,
+                shader_location: 3,
+            },
+            // size
+            VertexAttribute {
+                format: VertexFormat::Float32x2,
+                offset: (mem::size_of::<[f32; 4]>() * 4) as BufferAddress,
+                shader_location: 4,
+            },
+            // margin
+            VertexAttribute {
+                format: VertexFormat::Float32x2,
+                offset: (mem::size_of::<[f32; 4]>() * 4 + mem::size_of::<[f32; 2]>())
+                    as BufferAddress,
+                shader_location: 5,
+            },
+            // background_color
+            VertexAttribute {
+                format: VertexFormat::Float32x2,
+                offset: (mem::size_of::<[f32; 4]>() * 5) as BufferAddress,
+                shader_location: 6,
+            },
+        ]
+    }
+}
+
+struct ExtractedNodes {
+    containers: Vec<ExtractedContainers>,
 }
 
 pub struct UiMeta {
-    instances: BufferVec<UiVertex>,
+    container_instances: BufferVec<ExtractedContainers>,
+    view_bind_group: Option<BindGroup>,
+    // TODO: Add a text instances BufferVec
 }
 
 impl Default for UiMeta {
     fn default() -> Self {
         Self {
-            instances: BufferVec::new(BufferUsage::VERTEX),
+            container_instances: BufferVec::new(BufferUsage::VERTEX),
+            view_bind_group: None,
         }
     }
 }
@@ -53,17 +112,22 @@ pub fn build_ui_rendering(app: &mut App) {
     app.world
         .get_resource_mut::<ActiveCameras>()
         .unwrap()
-        .add(camera::CAMERA_UI);
+        .add(CAMERA_UI);
 
     // Configure UI render graph
-    let render_app = app.sub_app_mut(RenderSubApp).unwrap();
+    let render_app = app.sub_app(RenderApp);
     render_app
         .init_resource::<shader::UiShaders>()
         .init_resource::<UiMeta>()
         .add_system_to_stage(RenderStage::Extract, camera::extract_ui_camera)
+        .add_system_to_stage(RenderStage::Extract, extract_dom)
         .add_system_to_stage(RenderStage::Prepare, camera::prepare_ui_views)
         .add_system_to_stage(RenderStage::Prepare, prepare_ui_buffer)
-        .add_system_to_stage(RenderStage::Queue, test_queue);
+        .add_system_to_stage(RenderStage::Queue, queue_ui_nodes)
+        .add_system_to_stage(
+            RenderStage::PhaseSort,
+            sort_phase_system::<node::UiPassPhase>,
+        );
 
     let draw_ui = draw::DrawUi::new(&mut render_app.world);
     render_app
@@ -73,8 +137,7 @@ pub fn build_ui_rendering(app: &mut App) {
         .write()
         .add(draw_ui);
 
-    // let ui_pass_node = node::UiPass::new(&mut render_app.world);
-    let ui_pass_node = node::UiPass;
+    let ui_pass_node = node::UiPass::new(&mut render_app.world);
     let mut graph = render_app.world.get_resource_mut::<RenderGraph>().unwrap();
 
     let mut draw_ui_graph = RenderGraph::default();
@@ -120,20 +183,96 @@ pub fn build_ui_rendering(app: &mut App) {
         .unwrap();
 }
 
-fn extract_ui_nodes() {}
+fn extract_dom(mut commands: Commands, dom: Res<dom::Dom>) {
+    let mut containers = Vec::default();
+    let mut layer = VecDeque::from(vec![&dom.root]);
+    let mut next_layer = Vec::default();
 
-fn prepare_ui_buffer(render_device: Res<RenderDevice>, mut ui_buffer: ResMut<UiMeta>) {
-    if ui_buffer.instances.capacity() == 0 {
-        ui_buffer.instances.reserve(1, &render_device);
+    while let Some(node) = layer.pop_front() {
+        next_layer.extend(&node.children);
 
-        ui_buffer.instances.push(UiVertex {
-            transform: Mat4::IDENTITY,
-            size: Vec2::new(100.0, 100.0),
-            _padding: Vec2::default(),
-        });
+        match node.ty {
+            dom::NodeType::Container => {
+                let background_color = if let dom::style::Background::Color(color) = node.styles.background {
+                    color
+                } else {
+                    color::Color::YELLOW_GREEN
+                }.as_rgba_f32().into();
 
-        ui_buffer.instances.write_to_staging_buffer(&render_device);
+                containers.push(ExtractedContainers {
+                    transform: Transform::default().compute_matrix(),
+                    styles: ExtractedStyles {
+                        size: node.styles.size,
+                        margin: node.styles.margin,
+                        background_color,
+                    },
+                });
+            },
+            dom::NodeType::Text(_) => {
+                todo!()
+            }
+        }
+
+        if layer.is_empty() && !next_layer.is_empty() {
+            layer = VecDeque::from(next_layer);
+            next_layer = Vec::default();
+        }
+    }
+
+    commands.insert_resource(ExtractedNodes { containers });
+}
+
+fn prepare_ui_buffer(
+    render_device: Res<RenderDevice>,
+    extracted_nodes: Res<ExtractedNodes>,
+    mut ui_meta: ResMut<UiMeta>,
+) {
+    if extracted_nodes.is_changed() {
+        ui_meta.container_instances.reserve_and_clear(extracted_nodes.containers.len(), &render_device);
+
+        for container in &extracted_nodes.containers {
+            ui_meta.container_instances.push(container.clone());
+        }
+
+        ui_meta.container_instances.write_to_staging_buffer(&render_device);
     }
 }
 
-fn test_queue() {}
+fn queue_ui_nodes(
+    draw_functions: Res<DrawFunctions>,
+    render_device: Res<RenderDevice>,
+    view_meta: Res<ViewMeta>,
+    ui_shaders: Res<shader::UiShaders>,
+    mut extracted_nodes: ResMut<ExtractedNodes>,
+    mut ui_meta: ResMut<UiMeta>,
+    mut views: Query<&mut RenderPhase<node::UiPassPhase>>,
+) {
+    if view_meta.uniforms.is_empty() {
+        return;
+    }
+
+    ui_meta.view_bind_group.get_or_insert_with(|| {
+        render_device.create_bind_group(&BindGroupDescriptor {
+            entries: &[BindGroupEntry {
+                binding: 0,
+                resource: view_meta.uniforms.binding(),
+            }],
+            label: Some("ui_view_uniforms"),
+            layout: &ui_shaders.view_layout,
+        })
+    });
+    let draw_ui_pass_function = draw_functions.read().get_id::<draw::DrawUi>().unwrap();
+
+    for mut ui_pass_phase in views.iter_mut() {
+        for (i, container) in extracted_nodes.containers.iter().enumerate() {
+            let z = container.transform.transform_point3(Vec3::ZERO).z;
+            ui_pass_phase.add(Drawable {
+                draw_function: draw_ui_pass_function,
+                draw_key: i,
+                sort_key: (z / UI_Z_STEP).round() as usize,
+            });
+        }
+    }
+
+    extracted_nodes.containers.clear();
+}
