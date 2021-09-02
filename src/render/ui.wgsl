@@ -52,7 +52,7 @@ fn vertex(
     let clip_position = view.view_proj * object * vec4<f32>(scaled_position, 0.0, 1.0);
     var out: VertexOutput;
     out.clip_position = clip_position;
-    out.color = vec4<f32>(0.);
+    out.color = instance.background_color;
     // out.uv = unit_quad_uv[vertex_index];
     return out;
 }
