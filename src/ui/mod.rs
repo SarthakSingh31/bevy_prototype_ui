@@ -30,8 +30,6 @@ pub struct UiNodeTree {
 
 impl UiNodeTree {
     pub fn get_or_add_branch<T: UiComponent>(&mut self) -> UiNodeHandle {
-
-
         todo!()
     }
 }

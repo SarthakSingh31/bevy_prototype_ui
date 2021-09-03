@@ -1,6 +1,25 @@
 use std::{collections::VecDeque, mem};
 
-use bevy::{app::prelude::*, core_pipeline, ecs::prelude::*, math::prelude::*, render2::{RenderApp, RenderStage, camera::ActiveCameras, color, render_graph::{RenderGraph, SlotInfo, SlotType}, render_phase::{DrawFunctions, Drawable, RenderPhase, sort_phase_system}, render_resource::{BindGroup, BindGroupDescriptor, BindGroupEntry, BufferAddress, BufferUsage, BufferVec, VertexAttribute, VertexFormat}, renderer::RenderDevice, view::ViewMeta}, transform::prelude::*};
+use bevy::{
+    app::prelude::*,
+    core_pipeline,
+    ecs::prelude::*,
+    math::prelude::*,
+    render2::{
+        camera::ActiveCameras,
+        color,
+        render_graph::{RenderGraph, SlotInfo, SlotType},
+        render_phase::{sort_phase_system, DrawFunctions, Drawable, RenderPhase},
+        render_resource::{
+            BindGroup, BindGroupDescriptor, BindGroupEntry, BufferAddress, BufferUsage, BufferVec,
+            VertexAttribute, VertexFormat,
+        },
+        renderer::RenderDevice,
+        view::ViewMeta,
+        RenderApp, RenderStage,
+    },
+    transform::prelude::*,
+};
 
 use crate::UI_Z_STEP;
 
@@ -11,7 +30,7 @@ pub mod draw;
 pub mod node;
 pub mod shader;
 
-pub const CAMERA_UI: &str = "camera_ui";
+pub const CAMERA_UI: &str = "camera_ui_2";
 
 mod draw_ui_graph {
     pub const NAME: &str = "draw_ui_graph";
@@ -26,21 +45,21 @@ mod draw_ui_graph {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
 struct ExtractedStyles {
+    background_color: Vec4,
     size: Vec2,
     margin: Vec2,
-    background_color: Vec4,
 }
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
-struct ExtractedContainers {
+struct ExtractedContainer {
     transform: Mat4,
     styles: ExtractedStyles,
 }
 
-impl ExtractedContainers {
+impl ExtractedContainer {
     pub fn attributes() -> &'static [VertexAttribute] {
-        &[ // TODO: update this
+        &[
             // transform col 1
             VertexAttribute {
                 format: VertexFormat::Float32x4,
@@ -65,23 +84,23 @@ impl ExtractedContainers {
                 offset: (mem::size_of::<[f32; 4]>() * 3) as BufferAddress,
                 shader_location: 3,
             },
+            // background_color
+            VertexAttribute {
+                format: VertexFormat::Float32x4,
+                offset: (mem::size_of::<[f32; 4]>() * 4) as BufferAddress,
+                shader_location: 4,
+            },
             // size
             VertexAttribute {
                 format: VertexFormat::Float32x2,
-                offset: (mem::size_of::<[f32; 4]>() * 4) as BufferAddress,
-                shader_location: 4,
+                offset: (mem::size_of::<[f32; 4]>() * 5) as BufferAddress,
+                shader_location: 5,
             },
             // margin
             VertexAttribute {
                 format: VertexFormat::Float32x2,
-                offset: (mem::size_of::<[f32; 4]>() * 4 + mem::size_of::<[f32; 2]>())
+                offset: (mem::size_of::<[f32; 4]>() * 5 + mem::size_of::<[f32; 2]>())
                     as BufferAddress,
-                shader_location: 5,
-            },
-            // background_color
-            VertexAttribute {
-                format: VertexFormat::Float32x2,
-                offset: (mem::size_of::<[f32; 4]>() * 5) as BufferAddress,
                 shader_location: 6,
             },
         ]
@@ -89,11 +108,11 @@ impl ExtractedContainers {
 }
 
 struct ExtractedNodes {
-    containers: Vec<ExtractedContainers>,
+    containers: Vec<ExtractedContainer>,
 }
 
 pub struct UiMeta {
-    container_instances: BufferVec<ExtractedContainers>,
+    containers: BufferVec<ExtractedContainer>,
     view_bind_group: Option<BindGroup>,
     // TODO: Add a text instances BufferVec
 }
@@ -101,7 +120,7 @@ pub struct UiMeta {
 impl Default for UiMeta {
     fn default() -> Self {
         Self {
-            container_instances: BufferVec::new(BufferUsage::VERTEX),
+            containers: BufferVec::new(BufferUsage::VERTEX),
             view_bind_group: None,
         }
     }
@@ -184,6 +203,8 @@ pub fn build_ui_rendering(app: &mut App) {
 }
 
 fn extract_dom(mut commands: Commands, dom: Res<dom::Dom>) {
+    // if !dom.is_changed() { return; }
+
     let mut containers = Vec::default();
     let mut layer = VecDeque::from(vec![&dom.root]);
     let mut next_layer = Vec::default();
@@ -193,21 +214,24 @@ fn extract_dom(mut commands: Commands, dom: Res<dom::Dom>) {
 
         match node.ty {
             dom::NodeType::Container => {
-                let background_color = if let dom::style::Background::Color(color) = node.styles.background {
-                    color
-                } else {
-                    color::Color::YELLOW_GREEN
-                }.as_rgba_f32().into();
+                let background_color: Vec4 =
+                    if let dom::style::Background::Color(color) = node.styles.background {
+                        color
+                    } else {
+                        color::Color::YELLOW_GREEN
+                    }
+                    .as_rgba_linear()
+                    .into();
 
-                containers.push(ExtractedContainers {
-                    transform: Transform::default().compute_matrix(),
+                containers.push(ExtractedContainer {
+                    transform: Transform::from_translation(Vec3::new(0., 0., 1.)).compute_matrix(),
                     styles: ExtractedStyles {
+                        background_color,
                         size: node.styles.size,
                         margin: node.styles.margin,
-                        background_color,
                     },
                 });
-            },
+            }
             dom::NodeType::Text(_) => {
                 todo!()
             }
@@ -228,13 +252,16 @@ fn prepare_ui_buffer(
     mut ui_meta: ResMut<UiMeta>,
 ) {
     if extracted_nodes.is_changed() {
-        ui_meta.container_instances.reserve_and_clear(extracted_nodes.containers.len(), &render_device);
+        ui_meta
+            .containers
+            .reserve_and_clear(extracted_nodes.containers.len(), &render_device);
 
         for container in &extracted_nodes.containers {
-            ui_meta.container_instances.push(container.clone());
+            // println!("{:?}", container);
+            ui_meta.containers.push(container.clone());
         }
 
-        ui_meta.container_instances.write_to_staging_buffer(&render_device);
+        ui_meta.containers.write_to_staging_buffer(&render_device);
     }
 }
 

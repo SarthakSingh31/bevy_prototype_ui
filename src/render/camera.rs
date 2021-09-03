@@ -13,7 +13,7 @@ use bevy::{
     },
 };
 
-use super::{CAMERA_UI, node::UiPassPhase};
+use super::{node::UiPassPhase, CAMERA_UI};
 
 pub fn extract_ui_camera(mut commands: Commands, active_cameras: Res<ActiveCameras>) {
     if let Some(camera_ui) = active_cameras.get(CAMERA_UI) {

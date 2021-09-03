@@ -1,6 +1,20 @@
-use bevy::{core_pipeline::ViewDepthTexture, ecs::prelude::*, render2::{camera::{ExtractedCamera, ExtractedCameraNames}, render_graph::{Node, NodeRunError, RenderGraphContext, SlotInfo, SlotType, SlotValue}, render_phase::{DrawFunctions, RenderPhase, TrackedRenderPass}, render_resource::{LoadOp, Operations, RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor}, renderer::RenderContext, view::{ExtractedView, ExtractedWindows}}};
+use bevy::{
+    core_pipeline::ViewDepthTexture,
+    ecs::prelude::*,
+    render2::{
+        camera::{ExtractedCamera, ExtractedCameraNames},
+        render_graph::{Node, NodeRunError, RenderGraphContext, SlotInfo, SlotType, SlotValue},
+        render_phase::{DrawFunctions, RenderPhase, TrackedRenderPass},
+        render_resource::{
+            LoadOp, Operations, RenderPassColorAttachment, RenderPassDepthStencilAttachment,
+            RenderPassDescriptor,
+        },
+        renderer::RenderContext,
+        view::{ExtractedView, ExtractedWindows},
+    },
+};
 
-use super::{CAMERA_UI, draw_ui_graph};
+use super::{draw_ui_graph, CAMERA_UI};
 
 pub struct UiPassPhase;
 

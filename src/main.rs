@@ -12,7 +12,7 @@ use bevy::{
     PipelinedDefaultPlugins,
 };
 
-use bevy_prototype_ui::{PrototypeUiPlugin, UiBundle, UiNode, ui::camera::UiCameraBundle};
+use bevy_prototype_ui::{ui::camera::UiCameraBundle, PrototypeUiPlugin, UiBundle, UiNode};
 
 fn main() {
     App::new()
@@ -61,5 +61,6 @@ fn setup(
         ..Default::default()
     });
     // ui camera
-    commands.spawn_bundle(UiCameraBundle::default());
+    let ec = commands.spawn_bundle(UiCameraBundle::default());
+    println!("ec.id(): {:?}", ec.id());
 }

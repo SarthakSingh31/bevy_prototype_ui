@@ -2,7 +2,7 @@ use std::{collections::VecDeque, sync::Once};
 
 use bevy::{app::prelude::*, ecs::prelude::*, math::prelude::*};
 
-use crate::ui::{component::Button, BoxedRunableUiComponent, UiDom, UiVNode, UiNodeEnv};
+use crate::ui::{component::Button, BoxedRunableUiComponent, UiDom, UiNodeEnv, UiVNode};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, StageLabel)]
 pub struct UiStage;
@@ -40,7 +40,7 @@ fn ecs_component_runner(world: &mut World) {
                     children: Vec::default(),
                 },
                 position: Vec2::default(),
-            },];
+            }];
         });
         &mut VDOM_ROOTS_CACHE
     };

@@ -1,4 +1,8 @@
-use std::{any::{Any, TypeId, type_name}, collections::HashMap, fmt};
+use std::{
+    any::{type_name, TypeId},
+    collections::HashMap,
+    fmt,
+};
 
 use super::{RunableUiComponent, UiStyle};
 
@@ -14,7 +18,7 @@ pub enum UiNodeTyped {
     Component {
         name: String,
         instance: Box<dyn RunableUiComponent + 'static>,
-    }
+    },
 }
 
 impl fmt::Debug for UiNodeTyped {
@@ -24,10 +28,10 @@ impl fmt::Debug for UiNodeTyped {
         match self {
             Self::Primitive(primitive) => {
                 f.field(primitive);
-            },
-            Self::Component{ name, .. } => {
+            }
+            Self::Component { name, .. } => {
                 f.field(&name);
-            },
+            }
         }
 
         f.finish()
@@ -67,4 +71,3 @@ impl UiNode {
         todo!()
     }
 }
-

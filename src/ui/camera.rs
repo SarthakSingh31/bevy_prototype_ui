@@ -1,4 +1,8 @@
-use bevy::{ecs::prelude::*, render2::camera::{Camera, DepthCalculation, OrthographicProjection, WindowOrigin}, transform::prelude::*};
+use bevy::{
+    ecs::prelude::*,
+    render2::camera::{Camera, DepthCalculation, OrthographicProjection, WindowOrigin},
+    transform::prelude::*,
+};
 
 #[derive(Bundle, Debug)]
 pub struct UiCameraBundle {

@@ -32,5 +32,5 @@ impl UiComponent for Button {
             true
         }
     }
-    fn render(&self, tree: &mut UiNodeTree) { }
+    fn render(&self, tree: &mut UiNodeTree) {}
 }

@@ -1,13 +1,10 @@
 use bevy::{
     ecs::prelude::*,
-    render2::{
-        render_resource::*, renderer::RenderDevice, shader::Shader, texture::BevyDefault,
-        view::ViewUniform,
-    },
+    render2::{render_resource::*, renderer::RenderDevice, shader::Shader, texture::BevyDefault},
 };
 use std::mem;
 
-use crate::render::ExtractedContainers;
+use crate::render::ExtractedContainer;
 
 pub struct UiShaders {
     pub pipeline: RenderPipeline,
@@ -27,7 +24,8 @@ impl FromWorld for UiShaders {
                 ty: BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: true,
-                    min_binding_size: BufferSize::new(mem::size_of::<ViewUniform>() as u64),
+                    // TODO: fix this bevy does
+                    min_binding_size: BufferSize::new(144),
                 },
                 count: None,
             }],
@@ -60,9 +58,9 @@ impl FromWorld for UiShaders {
             }),
             vertex: VertexState {
                 buffers: &[VertexBufferLayout {
-                    array_stride: mem::size_of::<ExtractedContainers>() as BufferAddress,
+                    array_stride: mem::size_of::<ExtractedContainer>() as BufferAddress,
                     step_mode: InputStepMode::Instance,
-                    attributes: ExtractedContainers::attributes(),
+                    attributes: ExtractedContainer::attributes(),
                 }],
                 module: &shader_module,
                 entry_point: "vertex",

@@ -4,16 +4,16 @@ struct View {
     world_position: vec3<f32>;
 };
 [[group(0), binding(0)]]
-var view: View;
+var<uniform> view: View;
 
-struct UiVertexInput {
+struct UiContainer {
     [[location(0)]] transform_0: vec4<f32>;
     [[location(1)]] transform_1: vec4<f32>;
     [[location(2)]] transform_2: vec4<f32>;
     [[location(3)]] transform_3: vec4<f32>;
-    [[location(4)]] size: vec2<f32>;
-    [[location(5)]] margin: vec2<f32>;
-    [[location(6)]] background_color: vec4<f32>;
+    [[location(4)]] background_color: vec4<f32>;
+    [[location(5)]] size: vec2<f32>;
+    [[location(6)]] margin: vec2<f32>;
 };
 
 struct VertexOutput {
@@ -24,7 +24,7 @@ struct VertexOutput {
 [[stage(vertex)]]
 fn vertex(
     [[builtin(vertex_index)]] vertex_index: u32,
-    instance: UiVertexInput,
+    instance: UiContainer,
 ) -> VertexOutput {
     // Re-assemble the object transform matrix
     let object = mat4x4<f32>(
@@ -40,20 +40,18 @@ fn vertex(
         vec2<f32>( 0.5,  0.5), // top right
         vec2<f32>(-0.5,  0.5), // top left
     );
-    // var unit_quad_uv: array<vec2<f32>, 4> = array<vec2<f32>, 4>(
-    //     vec2<f32>(1.0, 1.0), // bottom right
-    //     vec2<f32>(0.0, 1.0), // bottom left
-    //     vec2<f32>(1.0, 0.0), // top right
-    //     vec2<f32>(0.0, 0.0), // top left
-    // );
+
     // Scale the vertices of the unit square
     let scaled_position = unit_quad_pos[vertex_index] * instance.size;
-    // Apply the object and view transformations
-    let clip_position = view.view_proj * object * vec4<f32>(scaled_position, 0.0, 1.0);
+
+    // let clip_position = view.view_proj * object * vec4<f32>(scaled_position, 0.0, 1.0);
+    let clip_position = vec4<f32>(unit_quad_pos[vertex_index], 0.0, 1.0);
+
     var out: VertexOutput;
     out.clip_position = clip_position;
-    out.color = instance.background_color;
-    // out.uv = unit_quad_uv[vertex_index];
+    out.color = instance.transform_0;
+    out.color[3] = 1.0;
+
     return out;
 }
 
