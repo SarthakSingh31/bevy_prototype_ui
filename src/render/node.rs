@@ -14,7 +14,7 @@ use bevy::{
     },
 };
 
-use super::{draw_ui_graph, CAMERA_UI};
+use super::{draw_ui_graph, UiMeta, CAMERA_UI};
 
 pub struct UiPassPhase;
 
@@ -78,6 +78,11 @@ impl Node for UiPass {
 
         let view_entity = graph.get_input_entity(Self::IN_VIEW_ENTITY)?;
         let draw_functions = world.get_resource::<DrawFunctions>().unwrap();
+
+        let uimeta = world.get_resource::<UiMeta>().unwrap();
+        uimeta
+            .containers
+            .write_to_buffer(&mut render_context.command_encoder);
 
         let phase = self
             .query

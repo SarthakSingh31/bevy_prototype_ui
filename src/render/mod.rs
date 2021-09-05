@@ -12,7 +12,7 @@ use bevy::{
         render_phase::{sort_phase_system, DrawFunctions, Drawable, RenderPhase},
         render_resource::{
             BindGroup, BindGroupDescriptor, BindGroupEntry, BufferAddress, BufferUsage, BufferVec,
-            VertexAttribute, VertexFormat,
+            InputStepMode, VertexAttribute, VertexBufferLayout, VertexFormat,
         },
         renderer::RenderDevice,
         view::ViewMeta,
@@ -58,52 +58,56 @@ struct ExtractedContainer {
 }
 
 impl ExtractedContainer {
-    pub fn attributes() -> &'static [VertexAttribute] {
-        &[
-            // transform col 1
-            VertexAttribute {
-                format: VertexFormat::Float32x4,
-                offset: 0,
-                shader_location: 0,
-            },
-            // transform col 2
-            VertexAttribute {
-                format: VertexFormat::Float32x4,
-                offset: mem::size_of::<[f32; 4]>() as BufferAddress,
-                shader_location: 1,
-            },
-            // transform col 3
-            VertexAttribute {
-                format: VertexFormat::Float32x4,
-                offset: (mem::size_of::<[f32; 4]>() * 2) as BufferAddress,
-                shader_location: 2,
-            },
-            // transform col 4
-            VertexAttribute {
-                format: VertexFormat::Float32x4,
-                offset: (mem::size_of::<[f32; 4]>() * 3) as BufferAddress,
-                shader_location: 3,
-            },
-            // background_color
-            VertexAttribute {
-                format: VertexFormat::Float32x4,
-                offset: (mem::size_of::<[f32; 4]>() * 4) as BufferAddress,
-                shader_location: 4,
-            },
-            // size
-            VertexAttribute {
-                format: VertexFormat::Float32x2,
-                offset: (mem::size_of::<[f32; 4]>() * 5) as BufferAddress,
-                shader_location: 5,
-            },
-            // margin
-            VertexAttribute {
-                format: VertexFormat::Float32x2,
-                offset: (mem::size_of::<[f32; 4]>() * 5 + mem::size_of::<[f32; 2]>())
-                    as BufferAddress,
-                shader_location: 6,
-            },
-        ]
+    pub fn desc<'a>() -> VertexBufferLayout<'a> {
+        VertexBufferLayout {
+            array_stride: mem::size_of::<ExtractedContainer>() as BufferAddress,
+            step_mode: InputStepMode::Instance,
+            attributes: &[
+                // transform col 1
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: 0,
+                    shader_location: 0,
+                },
+                // transform col 2
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: mem::size_of::<[f32; 4]>() as BufferAddress,
+                    shader_location: 1,
+                },
+                // transform col 3
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: (mem::size_of::<[f32; 4]>() * 2) as BufferAddress,
+                    shader_location: 2,
+                },
+                // transform col 4
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: (mem::size_of::<[f32; 4]>() * 3) as BufferAddress,
+                    shader_location: 3,
+                },
+                // background_color
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: (mem::size_of::<[f32; 4]>() * 4) as BufferAddress,
+                    shader_location: 4,
+                },
+                // size
+                VertexAttribute {
+                    format: VertexFormat::Float32x2,
+                    offset: (mem::size_of::<[f32; 4]>() * 5) as BufferAddress,
+                    shader_location: 5,
+                },
+                // margin
+                VertexAttribute {
+                    format: VertexFormat::Float32x2,
+                    offset: (mem::size_of::<[f32; 4]>() * 5 + mem::size_of::<[f32; 2]>())
+                        as BufferAddress,
+                    shader_location: 6,
+                },
+            ],
+        }
     }
 }
 

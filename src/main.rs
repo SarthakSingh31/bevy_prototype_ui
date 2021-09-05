@@ -61,6 +61,5 @@ fn setup(
         ..Default::default()
     });
     // ui camera
-    let ec = commands.spawn_bundle(UiCameraBundle::default());
-    println!("ec.id(): {:?}", ec.id());
+    commands.spawn_bundle(UiCameraBundle::default());
 }

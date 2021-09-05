@@ -41,15 +41,21 @@ fn vertex(
         vec2<f32>(-0.5,  0.5), // top left
     );
 
+    let cust_view_proj = mat4x4<f32>(
+        vec4<f32>(0.0015625, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0027777778, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0, 0.001, 0.0),
+        vec4<f32>(-1.0, -1.0, 1.0, 1.0),
+    );
+
     // Scale the vertices of the unit square
     let scaled_position = unit_quad_pos[vertex_index] * instance.size;
 
-    // let clip_position = view.view_proj * object * vec4<f32>(scaled_position, 0.0, 1.0);
-    let clip_position = vec4<f32>(unit_quad_pos[vertex_index], 0.0, 1.0);
+    let clip_position = view.view_proj * object * vec4<f32>(scaled_position, 0.0, 1.0);
 
     var out: VertexOutput;
     out.clip_position = clip_position;
-    out.color = instance.transform_0;
+    out.color = instance.background_color;
     out.color[3] = 1.0;
 
     return out;

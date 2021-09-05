@@ -37,21 +37,18 @@ impl Draw for DrawUi {
         let ui_meta = ui_meta.into_inner();
         let ui_shaders = ui_shaders.into_inner();
         pass.set_render_pipeline(&ui_shaders.pipeline);
-        pass.set_vertex_buffer(0, ui_meta.containers.buffer().unwrap().slice(..));
         pass.set_bind_group(
             0,
             ui_meta.view_bind_group.as_ref().unwrap(),
             &[view_uniform.offset],
         );
+        pass.set_vertex_buffer(0, ui_meta.containers.buffer().unwrap().slice(..));
         // if let Some(bind_group_key) = ui_meta.texture_bind_group_keys[draw_key] {
         //     pass.set_bind_group(1, &ui_meta.texture_bind_groups[bind_group_key], &[]);
         // } else {
         //     pass.set_bind_group(1, &ui_shaders.dummy_texture_bind_group, &[]);
         // }
         let instance = draw_key as u32;
-
-        // println!("{:?} {:?}", view_uniform.offset, views.iter().map(|u| u.offset).collect::<Vec<u32>>());
-        println!("view: {:?}", view);
 
         pass.draw(0..VERTICES, instance..instance + 1);
     }

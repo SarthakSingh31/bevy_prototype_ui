@@ -19,7 +19,7 @@ impl Plugin for PrototypeUiPlugin {
             root: dom::Node {
                 ty: dom::NodeType::Container,
                 styles: dom::style::Styles {
-                    size: Vec2::new(1.0, 1.0),
+                    size: Vec2::new(100.0, 100.0),
                     margin: Vec2::ZERO,
                     background: dom::style::Background::Color(color::Color::GREEN),
                 },

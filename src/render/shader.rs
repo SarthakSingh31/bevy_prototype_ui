@@ -2,7 +2,6 @@ use bevy::{
     ecs::prelude::*,
     render2::{render_resource::*, renderer::RenderDevice, shader::Shader, texture::BevyDefault},
 };
-use std::mem;
 
 use crate::render::ExtractedContainer;
 
@@ -24,7 +23,7 @@ impl FromWorld for UiShaders {
                 ty: BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: true,
-                    // TODO: fix this bevy does
+                    // TODO: fix this when bevy does
                     min_binding_size: BufferSize::new(144),
                 },
                 count: None,
@@ -57,11 +56,7 @@ impl FromWorld for UiShaders {
                 },
             }),
             vertex: VertexState {
-                buffers: &[VertexBufferLayout {
-                    array_stride: mem::size_of::<ExtractedContainer>() as BufferAddress,
-                    step_mode: InputStepMode::Instance,
-                    attributes: ExtractedContainer::attributes(),
-                }],
+                buffers: &[ExtractedContainer::desc()],
                 module: &shader_module,
                 entry_point: "vertex",
             },
